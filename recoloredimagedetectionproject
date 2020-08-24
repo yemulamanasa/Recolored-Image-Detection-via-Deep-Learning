@@ -1,0 +1,91 @@
+from PIL import Image
+from scipy.ndimage import filters
+import pandas as pd
+import numpy as np
+import os
+import glob
+from keras.preprocessing import image
+
+def cnn_model(path_loc):
+    import tensorflow as tf
+    import keras
+    from keras.models import Sequential
+    from keras.layers import Convolution2D
+    from keras.layers import MaxPool2D
+    from keras.layers import Flatten
+    from keras.layers import Dense
+    
+    # Initializing CNN
+        
+    classifier = Sequential()
+    
+    # Step 1 : convolution
+    classifier.add(Convolution2D(32,3,3,input_shape=(64,64,3),activation='relu'))
+
+    # Step 2 : Pooling
+    classifier.add(MaxPool2D(pool_size=(2,2)))
+
+    # Adding second convolution layer.
+    classifier.add(Convolution2D(32,3,3,activation='relu'))
+    classifier.add(MaxPool2D(pool_size=(2,2)))
+        
+    # step 3 : flattening
+    classifier.add(Flatten())
+
+    # step 4 : Full connection
+    classifier.add(Dense(output_dim= 128,activation='relu')) 
+    classifier.add(Dense(output_dim=2,activation='softmax'))
+
+    classifier.compile(optimizer='adam',metrics=['accuracy'],loss='categorical_crossentropy')
+
+    # fitting CNN to the images
+
+    from keras.preprocessing.image import ImageDataGenerator
+
+    train_datagen = ImageDataGenerator(rescale = 1./255, # image agumentation
+                                   shear_range = 0.2,
+                                   zoom_range = 0.2,
+                                   horizontal_flip = True)
+    test_datagen = ImageDataGenerator(rescale=1./255) # test data don't need much image agumentation.
+    import os
+
+    os.chdir(path_loc) # train and test path location
+    training_set = train_datagen.flow_from_directory('C:/Users/Dell/Desktop/RECOLOURED IMAGE DETECTION VIA A DEEP LEARNING DESCRIMINATIVE MODEL/code/updated/feature/training',
+                                                 target_size = (64, 64),
+                                                 batch_size = 32,
+                                                 class_mode = 'categorical') 
+
+    test_set = test_datagen.flow_from_directory('C:/Users/Dell/Desktop/RECOLOURED IMAGE DETECTION VIA A DEEP LEARNING DESCRIMINATIVE MODEL/code/updated/feature/testing',
+                                            target_size = (64, 64),
+                                            batch_size = 32,
+                                           class_mode = 'categorical')
+
+    # buliding model and performing model validation simultaneously
+    classifier.fit_generator(training_set,
+                         steps_per_epoch = 40, # number of images to be taken from training data set. 
+                         nb_epoch = 10, 
+                         validation_data = test_set,
+                         validation_steps = 10) # number of images to be taken from test data set.
+
+    return (training_set ,classifier)
+
+
+training_set ,classifier= cnn_model('C:/Users/Dell/Desktop/RECOLOURED IMAGE DETECTION VIA A DEEP LEARNING DESCRIMINATIVE MODEL/code/updated/feature')
+
+%matplotlib inline
+test_image = image.load_img('C:/Users/Dell/Desktop/RECOLOURED IMAGE DETECTION VIA A DEEP LEARNING DESCRIMINATIVE MODEL/code/updated/feature/testing/recolor/recolor.17.jpg', target_size = (64, 64))
+test_image
+
+test_image = image.img_to_array(test_image)
+test_image
+np.shape(test_image) 
+
+test_image = np.expand_dims(test_image, axis = 0)
+test_image
+np.shape(test_image)
+
+training_set.class_indices
+
+result = classifier.predict_classes(test_image)
+
+result[0]
